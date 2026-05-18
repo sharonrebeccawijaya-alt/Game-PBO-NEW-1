@@ -26,56 +26,103 @@ public class ArenaPertarungan {
             System.out.println("\n--- STATUS MONSTER ---");
 
             for (int i = 0; i < gelombangMonster.length; i++) {
-                System.out.println((i + 1) + ". "
-                        + gelombangMonster[i].namaMusuh
-                        + " (HP: "
-                        + gelombangMonster[i].healthPoint + ")");
-            }
 
-            System.out.println("5. Kabur dari pertarungan");
-
-            System.out.print(
-                "\nPilih target monster yang ingin diserang (1/2/3/4) atau 5 untuk kabur: ");
-
-            int pilihanTarget = input.nextInt();
-
-            // kabur
-            if (pilihanTarget == 5) {
-                System.out.println("Anda lari terbirit-birit dari arena...");
-                isBermain = false;
-                continue;
-            }
-
-            // validasi input
-            if (pilihanTarget < 1 || pilihanTarget > 4) {
-                System.out.println("Pilihan tidak valid!");
-                continue;
-            }
-
-            int indeksMonster = pilihanTarget - 1;
-            Musuh target = gelombangMonster[indeksMonster];
-
-            // monster sudah mati
-            if (target.healthPoint <= 0) {
-                System.out.println("Monster tersebut sudah kalah!");
-                continue;
-            }
-
-            System.out.print("Masukkan kekuatan serangan Anda (10 - 100): ");
-            int power = input.nextInt();
-
-            System.out.println("\n>>> HASIL SERANGAN ANDA <<<");
-            target.terimaDamage(power);
-
-            // loot drop
-            if (target.healthPoint == 0) {
-                if (target instanceof BisaLoot) {
-                    BisaLoot lootMonster = (BisaLoot) target;
-                    lootMonster.jatuhkanItem();
+                if (gelombangMonster[i].healthPoint > 0) {
+                    System.out.println((i + 1) + ". "
+                            + gelombangMonster[i].namaMusuh
+                            + " (HP: "
+                            + gelombangMonster[i].healthPoint + ")");
+                } else {
+                    System.out.println((i + 1) + ". "
+                            + gelombangMonster[i].namaMusuh
+                            + " [TEWAS]");
                 }
             }
 
-            // cek apakah semua monster mati
+            System.out.println("5. Kabur dari pertarungan");
+            System.out.print("Pilih target monster (1-4) atau 5 untuk kabur: ");
+
+            try {
+
+                // input target monster
+                int pilihanTarget = input.nextInt();
+
+                if (pilihanTarget == 5) {
+                    System.out.println("Anda lari dari arena...");
+                    isBermain = false;
+                    continue;
+                }
+
+                if (pilihanTarget < 1 || pilihanTarget > 4) {
+                    System.out.println("Pilihan tidak valid!");
+                    continue;
+                }
+
+                int indeksMonster = pilihanTarget - 1;
+
+                // cek monster sudah mati
+                if (gelombangMonster[indeksMonster].healthPoint <= 0) {
+                    throw new TargetMatiException(
+                            "Tindakan ilegal: Anda tidak bisa menyerang monster yang sudah mati!");
+                }
+
+                // input power serangan
+                System.out.print("Masukkan kekuatan serangan Anda (10-100): ");
+                int power = input.nextInt();
+
+                // validasi power
+                if (power < 10 || power > 100) {
+                    throw new SeranganTidakValidException(
+                            "Kekuatan serangan harus di antara 10 sampai 100!");
+                }
+
+                System.out.println("\n>>> HASIL SERANGAN ANDA <<<");
+                gelombangMonster[indeksMonster].terimaDamage(power);
+
+                // loot drop
+                if (gelombangMonster[indeksMonster].healthPoint <= 0) {
+
+                    System.out.println(
+                            gelombangMonster[indeksMonster].namaMusuh
+                                    + " berhasil dikalahkan!");
+
+                    if (gelombangMonster[indeksMonster] instanceof BisaLoot) {
+
+                        BisaLoot monsterLoot =
+                                (BisaLoot) gelombangMonster[indeksMonster];
+
+                        monsterLoot.jatuhkanItem();
+                    }
+                }
+
+            }
+
+            // input huruf/simbol
+            catch (java.util.InputMismatchException e) {
+                System.out.println(
+                        "ERROR INPUT: Anda harus memasukkan ANGKA!");
+                input.nextLine(); // membersihkan buffer
+            }
+
+            // menyerang monster mati
+            catch (TargetMatiException e) {
+                System.out.println(
+                        "KESALAHAN GAME: " + e.getMessage());
+            }
+
+            // power tidak valid
+            catch (SeranganTidakValidException e) {
+                System.out.println(
+                        "KESALAHAN GAME: " + e.getMessage());
+            }
+
+            // error lain
+            catch (Exception e) {
+                System.out.println(
+                        "Terjadi kesalahan sistem: " + e.getMessage());
+            }
+
+            // cek semua monster mati
             boolean semuaMati = true;
 
             for (Musuh monster : gelombangMonster) {
@@ -85,11 +132,9 @@ public class ArenaPertarungan {
                 }
             }
 
-            // kondisi menang
             if (semuaMati) {
                 System.out.println(
-                    "\nSELAMAT!! Anda telah menyapu bersih gelombang monster ini!"
-                );
+                        "\nSELAMAT! Anda telah mengalahkan semua monster!");
                 isBermain = false;
                 continue;
             }
@@ -105,8 +150,7 @@ public class ArenaPertarungan {
                     if (monsterAktif instanceof BisaTerbang) {
 
                         System.out.println(
-                            "[PERINGATAN SERANGAN UDARA TERDETEKSI!]"
-                        );
+                                "[PERINGATAN SERANGAN UDARA TERDETEKSI!]");
 
                         BisaTerbang monsterTerbang =
                                 (BisaTerbang) monsterAktif;
